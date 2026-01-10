@@ -1,5 +1,8 @@
 # BMAD6: Autonomous TDD Software Factory
 
+## 0. Absolute principle
+****
+
 ## 1. Overview
 NestJS + React 풀스택 프로젝트를 위한 **1인 개발 에이전트 오케스트레이션** 환경입니다.
 **Contract-First** 설계와 **Red-Green-Refactor** 사이클을 GitHub Ops 자동화로 강제합니다.
