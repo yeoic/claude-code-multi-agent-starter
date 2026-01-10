@@ -1,7 +1,7 @@
 # BMAD6: Autonomous TDD Software Factory
 
 ## 0. Absolute principle
-****
+**Follow the workflow without exception.**
 
 ## 1. Overview
 NestJS + React 풀스택 프로젝트를 위한 **1인 개발 에이전트 오케스트레이션** 환경입니다.
@@ -10,6 +10,7 @@ NestJS + React 풀스택 프로젝트를 위한 **1인 개발 에이전트 오�
 ## 2. Tech Stack & Tools
 - **App:** NestJS 10.x, React 18, Drizzle, TanStack Query
 - **Test:** Jest, Supertest, MSW, RTL
+- **E2E:** Playwright MCP (브라우저 자동화 테스트)
 - **Ops:** `zx` (Scripting), GitHub CLI (`gh`), Git Worktree
 
 ## 3. Agent Roles & Workflows
@@ -21,7 +22,7 @@ NestJS + React 풀스택 프로젝트를 위한 **1인 개발 에이전트 오�
 | **Architect** | `Arch` | **Phase 0:** API Contract(Zod) 정의, Skeleton Code 작성 | `../worktrees/architect` |
 | **QA** | `QA-Back`<br>`QA-Front` | **Phase 1 (Red):** 실패하는 테스트 케이스 작성 | `../worktrees/qa-back`<br>`../worktrees/qa-front` |
 | **Developer** | `Dev-Back`<br>`Dev-Front` | **Phase 2 (Green):** 테스트 통과 구현 및 리팩토링 | `../worktrees/backend`<br>`../worktrees/frontend` |
-| **Reviewer** | `Reviewer` | **Phase 3:** CI 결과 확인, 코드 리뷰, Merge 승인 | (Root) |
+| **Reviewer** | `Reviewer` | **Phase 3:** CI 결과 확인, 코드 리뷰, **E2E 통합 테스트 (Playwright MCP)**, Merge 승인 | (Root) |
 
 ## 4. Automation Commands (Skills)
 이 프로젝트는 `.claude/skills/github-ops`를 사용하여 파이프라인을 제어합니다.
@@ -52,3 +53,51 @@ NestJS + React 풀스택 프로젝트를 위한 **1인 개발 에이전트 오�
 - **`dev`**: 개발 메인 브랜치 (항상 배포 가능 상태 유지, 직접 Push 금지)
 - **`topic/feat-[id]-[name]`**: 작업 브랜치. 모든 Agent가 이 브랜치를 공유하며 작업함.
 - **Worktree Sync**: `/ops start` 실행 시 5개의 Worktree가 모두 동일한 Topic Branch를 바라보게 됨.
+
+## 7. E2E Integration Test (Playwright MCP)
+Reviewer 단계에서 **Playwright MCP**를 사용하여 브라우저 기반 통합 테스트를 자동화합니다.
+
+### 설정
+프로젝트 루트의 `.mcp.json` 파일에 Playwright MCP 서버가 설정되어 있습니다:
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+### 테스트 절차 (Reviewer)
+PR 머지 전, 다음 순서로 E2E 통합 테스트를 수행합니다:
+
+1. **서버 실행**
+   ```bash
+   # 백엔드 (터미널 1)
+   cd backend && npm run start:dev &
+
+   # 프론트엔드 (터미널 2)
+   cd frontend && npm run dev &
+   ```
+
+2. **Playwright MCP로 브라우저 테스트**
+   - `mcp__playwright__browser_navigate`: 프론트엔드 URL 접속 (`http://localhost:5173`)
+   - `mcp__playwright__browser_snapshot`: 현재 페이지 상태 캡처
+   - `mcp__playwright__browser_screenshot`: 스크린샷으로 UI 확인
+   - 예상 결과와 실제 화면 비교 검증
+
+3. **검증 완료 후**
+   - PR의 Test Plan 체크박스 모두 완료 처리
+   - `/ops merge [pr-id]` 실행
+
+### 주요 MCP 도구
+| Tool | 설명 |
+|------|------|
+| `browser_navigate` | URL로 페이지 이동 |
+| `browser_snapshot` | 현재 페이지의 접근성 스냅샷 (텍스트 확인용) |
+| `browser_screenshot` | 스크린샷 캡처 |
+| `browser_click` | 요소 클릭 |
+| `browser_type` | 텍스트 입력 |
+| `browser_hover` | 요소에 마우스 오버 |
